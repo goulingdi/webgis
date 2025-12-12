@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>礼泉县高分中心</title>
+    <title>空中丝路高分中心</title>
     <!-- 1. 引入Leaflet的CSS样式文件 -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         crossorigin=""/>
@@ -265,7 +265,7 @@
 </head>
 <body>
     <!-- 2. 创建标题 -->
-    <h1>礼泉县高分中心</h1>
+    <h1>空中丝路高分中心</h1>
     <!-- 3. 创建一个用于显示地图的div容器 -->
     <div id="map-container" style="position: relative;">
         <div id="map"></div>
@@ -469,10 +469,7 @@
                                 });
                                 // 添加点击事件
                                 layer.on('click', function() {
-                                    var infoDiv = document.getElementById('measure-info');
-                                    if (infoDiv) {
-                                        infoDiv.innerHTML = '行政区划: ' + feature.properties.name;
-                                    }
+                                    showProvinceInfo(feature.properties);
                                 });
                             }
                         });
@@ -1406,6 +1403,158 @@
         map.on('mouseout', function() {
             coordsDiv.innerHTML = '经度: --, 纬度: --';
         });
+        
+        // 显示省份信息的对话框函数
+        function showProvinceInfo(properties) {
+            // 获取当前鼠标位置，用于定位对话框
+            var mouseX = event.clientX;
+            var mouseY = event.clientY;
+            
+            // 创建对话框容器
+            var dialog = document.createElement('div');
+            dialog.id = 'province-info-dialog';
+            dialog.style.cssText = `
+                position: fixed;
+                top: ${Math.max(20, mouseY - 150)}px;
+                left: ${Math.max(20, mouseX + 10)}px;
+                background: white;
+                padding: 15px;
+                border-radius: 6px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                z-index: 10000;
+                width: 280px;
+                font-family: Arial, sans-serif;
+                border: 1px solid #007cbf;
+                font-size: 14px;
+            `;
+            
+            // 创建标题栏
+            var titleBar = document.createElement('div');
+            titleBar.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #007cbf;
+            `;
+            
+            var title = document.createElement('h3');
+            title.textContent = '省份信息';
+            title.style.cssText = `
+                margin: 0;
+                color: #007cbf;
+                font-size: 18px;
+            `;
+            
+            var closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '×';
+            closeBtn.style.cssText = `
+                background: none;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+                color: #666;
+                padding: 0;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            closeBtn.onclick = function() {
+                if (overlay && document.body.contains(overlay)) {
+                    document.body.removeChild(overlay);
+                }
+                if (dialog && document.body.contains(dialog)) {
+                    document.body.removeChild(dialog);
+                }
+                document.removeEventListener('keydown', escHandler);
+            };
+            
+            titleBar.appendChild(title);
+            titleBar.appendChild(closeBtn);
+            
+            // 创建内容区域
+            var content = document.createElement('div');
+            content.style.cssText = `
+                line-height: 1.6;
+                color: #333;
+            `;
+            
+            // 省份基本信息
+            var infoHtml = `
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: #007cbf; font-size: 16px;">${properties.name}</strong>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <span style="font-weight: bold;">行政区划代码:</span> ${properties.adcode}
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <span style="font-weight: bold;">中心坐标:</span> 
+                    ${properties.center ? properties.center.join(', ') : '暂无数据'}
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <span style="font-weight: bold;">几何中心:</span> 
+                    ${properties.centroid ? properties.centroid.join(', ') : '暂无数据'}
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <span style="font-weight: bold;">省份级别:</span> 
+                    ${properties.level || '省级'}
+                </div>
+                <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee; font-style: italic; color: #666;">
+                    点击地图上的其他省份查看信息，或点击右上角关闭按钮
+                </div>
+            `;
+            
+            content.innerHTML = infoHtml;
+            
+            // 组装对话框
+            dialog.appendChild(titleBar);
+            dialog.appendChild(content);
+            
+            // 添加半透明背景遮罩
+            var overlay = document.createElement('div');
+            overlay.id = 'dialog-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 9999;
+            `;
+            
+            // 点击遮罩关闭对话框
+            overlay.onclick = function() {
+                if (overlay && document.body.contains(overlay)) {
+                    document.body.removeChild(overlay);
+                }
+                if (dialog && document.body.contains(dialog)) {
+                    document.body.removeChild(dialog);
+                }
+                document.removeEventListener('keydown', escHandler);
+            };
+            
+            // 添加到页面
+            document.body.appendChild(overlay);
+            document.body.appendChild(dialog);
+            
+            // 添加ESC键关闭功能
+            var escHandler = function(e) {
+                if (e.key === 'Escape') {
+                    if (overlay && document.body.contains(overlay)) {
+                        document.body.removeChild(overlay);
+                    }
+                    if (dialog && document.body.contains(dialog)) {
+                        document.body.removeChild(dialog);
+                    }
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+        }
     </script>
 </body>
 </html>
